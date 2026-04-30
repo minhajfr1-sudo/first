@@ -186,6 +186,7 @@ function TryOnScreen({ sessionId, photoUrl, onReset }) {
   const [analyzing, setAnalyzing]   = useState(true)   // Claude is reading garments
   const cache          = useRef({})
   const prefetchQueue  = useRef(new Set())
+  const baseReadyRef   = useRef(false)
 
   // Load + analyze all garments on mount
   useEffect(() => {
@@ -217,6 +218,16 @@ function TryOnScreen({ sessionId, photoUrl, onReset }) {
 
     prefetchQueue.current.add(key)
     try {
+      // ensure base image generated once before first try-on
+      if (!baseReadyRef.current) {
+        await fetch('/generate-base-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        })
+        baseReadyRef.current = true
+      }
+
       const garmentUrl = window.location.origin + garment.image
       const url = await runTryOn(sessionId, garmentUrl, garment.type)
       cache.current[key] = url
@@ -350,7 +361,6 @@ function TryOnScreen({ sessionId, photoUrl, onReset }) {
 
         <div style={s.garmentGrid}>
           {analyzing
-            // Show skeletons while Claude analyzes
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
             : garments.map((g, i) => (
                 <GarmentCard
@@ -394,7 +404,7 @@ export default function App() {
   )
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
+// ─── STYLES ─────────────────────────────────────────────────────────────────-
 const s = {
   uploadScreen: {
     height: '100vh', width: '100vw',
@@ -475,10 +485,7 @@ const s = {
   ctaBtnDisabled: { opacity: 0.35, cursor: 'not-allowed' },
   ctaBtnInner: { display: 'flex', alignItems: 'center', gap: 10 },
 
-  // Try-on screen
   tryonScreen: { height: '100vh', width: '100vw', display: 'flex', overflow: 'hidden', animation: 'fadeIn 0.5s ease' },
-
-  // Canvas (left)
   canvas: { flex: '1 1 60%', display: 'flex', flexDirection: 'column', background: '#0e0e0e', position: 'relative', overflow: 'hidden' },
   canvasInner: { flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   resultImg: { height: '100%', width: '100%', objectFit: 'contain', display: 'block' },
@@ -512,7 +519,6 @@ const s = {
   },
   saveBtnDisabled: { opacity: 0.3, cursor: 'not-allowed' },
 
-  // Panel (right)
   panel: {
     flex: '0 0 360px', display: 'flex', flexDirection: 'column',
     background: 'var(--surface)', borderLeft: '1px solid var(--border)', overflow: 'hidden',
@@ -549,7 +555,6 @@ const s = {
     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignContent: 'start',
   },
 
-  // Garment card
   card: {
     background: 'var(--surface2)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius-md)', overflow: 'hidden', cursor: 'pointer',
@@ -571,7 +576,6 @@ const s = {
     letterSpacing: '0.04em', textTransform: 'uppercase',
   },
 
-  // Skeleton card
   skeleton: {
     background: 'var(--surface2)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius-md)', overflow: 'hidden',
@@ -591,13 +595,11 @@ const s = {
     animation: 'shimmer 1.5s infinite',
   },
 
-  // Outfit summary
   outfitSummary: { padding: '14px 24px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 },
   summaryLabel: { fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' },
   summaryItems: { display: 'flex', flexDirection: 'column', gap: 2 },
   summaryItem: { fontSize: 13, color: 'var(--cream)' },
 
-  // Spinners
   spinner: {
     display: 'inline-block', width: 16, height: 16,
     border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#0c0c0c',
