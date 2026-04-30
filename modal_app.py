@@ -13,20 +13,54 @@ class VTONModel:
         self._load_seg_model()
         self._load_idm_vton()
         self._load_catvton()
+        self._load_instantid()
         print("✅ All models ready")
 
     @modal.method()
     def generate_base_image(self, session_id: str):
         from PIL import Image
-        import io
+        import io, torch, cv2, numpy as np
 
         if session_id not in self.sessions:
             raise ValueError("Session not found")
 
-        img = Image.open(io.BytesIO(self.sessions[session_id])).convert("RGB")
+        image_bytes = self.sessions[session_id]
 
-        # TEMP base (replace with InstantID later)
-        base_img = img.resize((768, 1024))
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        faces = self.face_app.get(img_cv)
+        if not faces:
+            raise ValueError("No face detected")
+
+        face = faces[0]
+        face_emb = torch.tensor(face.normed_embedding).unsqueeze(0).to(self.device)
+
+        face_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
+
+        prompt = (
+            "photorealistic full body photo of a person standing straight, "
+            "arms slightly away, neutral expression, "
+            "studio lighting, white background, fashion photography, high detail"
+        )
+
+        negative_prompt = (
+            "cartoon, anime, illustration, painting, deformed, bad anatomy, blurry"
+        )
+
+        self.instantid_pipe.set_ip_adapter_scale(1.0)
+
+        with torch.no_grad():
+            base_img = self.instantid_pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image_embeds=face_emb,
+                image=face_img,
+                num_inference_steps=35,
+                guidance_scale=5.5,
+                height=1024,
+                width=768,
+            ).images[0]
 
         self.base_images[session_id] = base_img
         return {"status": "base generated"}
