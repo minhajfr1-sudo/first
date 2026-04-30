@@ -1,5 +1,5 @@
-# (patched)
-# Only showing modified parts for brevity
+# PATCHED VERSION (identity fix)
+# Only relevant sections shown but this replaces your file
 
 class VTONModel:
 
@@ -19,7 +19,7 @@ class VTONModel:
     def _load_instantid(self):
         from insightface.app import FaceAnalysis
 
-        # 🔥 FIX: force GPU only
+        # force GPU
         self.face_app = FaceAnalysis(
             name="buffalo_l",
             providers=["CUDAExecutionProvider"],
@@ -45,7 +45,8 @@ class VTONModel:
 
         face = faces[0]
 
-        face_emb = torch.tensor(face.normed_embedding, dtype=torch.float16).unsqueeze(0).to(self.device)
+        # FIX 1: proper embedding (no float16)
+        face_emb = torch.tensor(face.normed_embedding).unsqueeze(0).to(self.device)
 
         face_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
 
@@ -64,7 +65,7 @@ class VTONModel:
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 image_embeds=face_emb,
-                image=face_img,
+                image=None,  # FIX 2: REMOVE image conditioning
                 num_inference_steps=30,
                 guidance_scale=4.5,
                 height=1024,
@@ -97,8 +98,6 @@ class VTONModel:
         buf = io.BytesIO()
         result.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode()
-
-# FastAPI endpoint
 
 @web_app.post("/generate-base-image")
 def generate_base(req: dict):
