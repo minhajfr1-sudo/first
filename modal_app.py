@@ -16,6 +16,16 @@ class VTONModel:
         self._load_instantid()
         print("✅ All models ready")
 
+    def _load_instantid(self):
+        from insightface.app import FaceAnalysis
+
+        # 🔥 FIX: force GPU only
+        self.face_app = FaceAnalysis(
+            name="buffalo_l",
+            providers=["CUDAExecutionProvider"],
+        )
+        self.face_app.prepare(ctx_id=0, det_size=(640, 640))
+
     @modal.method()
     def generate_base_image(self, session_id: str):
         from PIL import Image
@@ -35,12 +45,10 @@ class VTONModel:
 
         face = faces[0]
 
-        # 🔥 FIX: correct embedding tensor + device
         face_emb = torch.tensor(face.normed_embedding, dtype=torch.float16).unsqueeze(0).to(self.device)
 
         face_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
 
-        # 🔥 FIX: reduce model bias + enforce identity
         prompt = (
             "realistic full body photo of the SAME person, standing straight, neutral pose, plain white background, natural lighting"
         )
@@ -49,7 +57,6 @@ class VTONModel:
             "different person, wrong face, cartoon, anime, illustration, fake face, deformed, blurry"
         )
 
-        # 🔥 FIX: max identity strength
         self.instantid_pipe.set_ip_adapter_scale(1.0)
 
         with torch.no_grad():
