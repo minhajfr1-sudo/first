@@ -1,5 +1,4 @@
-# PATCHED VERSION (identity fix)
-# Only relevant sections shown but this replaces your file
+# PATCHED VERSION (identity fix + GPU fix)
 
 class VTONModel:
 
@@ -19,7 +18,7 @@ class VTONModel:
     def _load_instantid(self):
         from insightface.app import FaceAnalysis
 
-        # force GPU
+        # 🔥 GPU FIX
         self.face_app = FaceAnalysis(
             name="buffalo_l",
             providers=["CUDAExecutionProvider"],
@@ -45,10 +44,8 @@ class VTONModel:
 
         face = faces[0]
 
-        # FIX 1: proper embedding (no float16)
+        # 🔥 FIXED EMBEDDING
         face_emb = torch.tensor(face.normed_embedding).unsqueeze(0).to(self.device)
-
-        face_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
 
         prompt = (
             "realistic full body photo of the SAME person, standing straight, neutral pose, plain white background, natural lighting"
@@ -65,7 +62,7 @@ class VTONModel:
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 image_embeds=face_emb,
-                image=None,  # FIX 2: REMOVE image conditioning
+                image=None,  # 🔥 KEY FIX
                 num_inference_steps=30,
                 guidance_scale=4.5,
                 height=1024,
