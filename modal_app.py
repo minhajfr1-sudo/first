@@ -34,20 +34,22 @@ class VTONModel:
             raise ValueError("No face detected")
 
         face = faces[0]
-        face_emb = torch.tensor(face.normed_embedding).unsqueeze(0).to(self.device)
+
+        # 🔥 FIX: correct embedding tensor + device
+        face_emb = torch.tensor(face.normed_embedding, dtype=torch.float16).unsqueeze(0).to(self.device)
 
         face_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
 
-        # 🔥 SIMPLER + STRONGER identity prompt
+        # 🔥 FIX: reduce model bias + enforce identity
         prompt = (
-            "realistic full body photo of the SAME person, standing straight, neutral pose, plain white background"
+            "realistic full body photo of the SAME person, standing straight, neutral pose, plain white background, natural lighting"
         )
 
         negative_prompt = (
-            "cartoon, anime, different person, fake face, illustration, painting, deformed, blurry"
+            "different person, wrong face, cartoon, anime, illustration, fake face, deformed, blurry"
         )
 
-        # 🔥 MAX identity strength
+        # 🔥 FIX: max identity strength
         self.instantid_pipe.set_ip_adapter_scale(1.0)
 
         with torch.no_grad():
