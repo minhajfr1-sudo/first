@@ -1,37 +1,62 @@
-# PATCHED VERSION (identity fix + GPU fix)
+# FIXED VERSION (InstantID restored + identity working)
 
 class VTONModel:
 
     @modal.enter()
     def load(self):
         import torch
-        self.device   = "cuda"
-        self.sessions: dict = {}
+        self.device = "cuda"
+        self.sessions = {}
         self.base_images = {}
-        os.makedirs("/data/garments", exist_ok=True)
-        self._load_seg_model()
-        self._load_idm_vton()
-        self._load_catvton()
+
         self._load_instantid()
-        print("✅ All models ready")
+        print("🔥 NEW CODE RUNNING")
 
     def _load_instantid(self):
+        import torch, os, sys, requests
         from insightface.app import FaceAnalysis
+        from diffusers import ControlNetModel, AutoencoderKL
 
-        # 🔥 GPU FIX
-        self.face_app = FaceAnalysis(
-            name="buffalo_l",
-            providers=["CUDAExecutionProvider"],
-        )
+        # Face detection
+        self.face_app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
         self.face_app.prepare(ctx_id=0, det_size=(640, 640))
+
+        # Load InstantID pipeline
+        instantid_dir = "/data/instantid"
+        os.makedirs(instantid_dir, exist_ok=True)
+
+        pipeline_path = f"{instantid_dir}/pipeline_stable_diffusion_xl_instantid.py"
+        if not os.path.exists(pipeline_path):
+            r = requests.get(
+                "https://raw.githubusercontent.com/huggingface/diffusers/main/examples/community/pipeline_stable_diffusion_xl_instantid.py"
+            )
+            open(pipeline_path, "w").write(r.text)
+
+        sys.path.insert(0, instantid_dir)
+        from pipeline_stable_diffusion_xl_instantid import StableDiffusionXLInstantIDPipeline
+
+        controlnet = ControlNetModel.from_pretrained(
+            "InstantX/InstantID-ControlNet",
+            torch_dtype=torch.float16
+        ).to(self.device)
+
+        vae = AutoencoderKL.from_pretrained(
+            "madebyollin/sdxl-vae-fp16-fix",
+            torch_dtype=torch.float16
+        ).to(self.device)
+
+        self.instantid_pipe = StableDiffusionXLInstantIDPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            controlnet=controlnet,
+            vae=vae,
+            torch_dtype=torch.float16,
+        ).to(self.device)
+
+        print("✅ InstantID ready")
 
     @modal.method()
     def generate_base_image(self, session_id: str):
-        from PIL import Image
-        import io, torch, cv2, numpy as np
-
-        if session_id not in self.sessions:
-            raise ValueError("Session not found")
+        import torch, cv2, numpy as np
 
         image_bytes = self.sessions[session_id]
 
@@ -43,34 +68,23 @@ class VTONModel:
             raise ValueError("No face detected")
 
         face = faces[0]
-
-        # 🔥 FIXED EMBEDDING
         face_emb = torch.tensor(face.normed_embedding).unsqueeze(0).to(self.device)
-
-        prompt = (
-            "realistic full body photo of the SAME person, standing straight, neutral pose, plain white background, natural lighting"
-        )
-
-        negative_prompt = (
-            "different person, wrong face, cartoon, anime, illustration, fake face, deformed, blurry"
-        )
 
         self.instantid_pipe.set_ip_adapter_scale(1.0)
 
-        with torch.no_grad():
-            base_img = self.instantid_pipe(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image_embeds=face_emb,
-                image=None,  # 🔥 KEY FIX
-                num_inference_steps=30,
-                guidance_scale=4.5,
-                height=1024,
-                width=768,
-            ).images[0]
+        result = self.instantid_pipe(
+            prompt="photorealistic full body photo of the same person, white background",
+            negative_prompt="different person, wrong face, cartoon, anime",
+            image_embeds=face_emb,
+            image=None,
+            num_inference_steps=30,
+            guidance_scale=5.0,
+            height=1024,
+            width=768,
+        ).images[0]
 
-        self.base_images[session_id] = base_img
-        return {"status": "base generated"}
+        self.base_images[session_id] = result
+        return {"status": "ok"}
 
     @modal.method()
     def tryon(self, session_id: str, garment_url: str, garment_type: str) -> str:
