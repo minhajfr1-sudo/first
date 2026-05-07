@@ -1,15 +1,1007 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DRAPE — Virtual Try-On</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arca</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+
+:root {
+  --bg:        #f2efe8;
+  --surface:   #faf8f4;
+  --sidebar:   #eceae2;
+  --border:    #ddd9cf;
+  --text:      #1a1814;
+  --muted:     #8a8478;
+  --faint:     rgba(26,24,20,.045);
+  --accent:    #2952e3;
+  --accent-lt: #edf1fd;
+  --amber:     #92400e;
+  --amber-lt:  #fef3c7;
+  --green:     #15694a;
+  --sh:        0 1px 3px rgba(0,0,0,.06), 0 3px 12px rgba(0,0,0,.05);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── APP SHELL ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── LEFT PANEL ── */
+.lpanel {
+  width: 256px; min-width: 256px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+}
+
+.lp-top {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.brand {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px; letter-spacing: -.2px;
+  margin-bottom: 11px;
+  display: flex; align-items: center;
+}
+.brand span { color: var(--accent); }
+.brand-tagline {
+  font-size: 10px; font-weight: 500; letter-spacing: .5px;
+  color: var(--muted); margin-left: 6px; margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.search-wrap {
+  display: flex; align-items: center;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px; padding: 8px 11px; gap: 8px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(41,82,227,.07);
+}
+.search-wrap svg { color: var(--muted); flex-shrink: 0; }
+.search-wrap input {
+  flex: 1; border: none; outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; background: transparent; color: var(--text);
+}
+.search-wrap input::placeholder { color: var(--muted); }
+
+/* source list */
+.source-list {
+  flex: 1; overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.lp-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 300;
+  line-height: 1.7;
+}
+.lp-hints {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-top: 14px;
+}
+.lp-hint {
+  font-size: 12px; color: var(--muted);
+  padding: 6px 10px; border-radius: 7px;
+  background: rgba(0,0,0,.03); cursor: pointer;
+  transition: all .15s; text-align: left;
+  border: none; font-family: 'Inter', sans-serif;
+  width: 100%;
+}
+.lp-hint:hover { background: rgba(0,0,0,.06); color: var(--text); }
+
+.group-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 600; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--muted);
+  padding: 11px 14px 5px;
+}
+.group-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.src-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background .12s;
+  border-left: 2px solid transparent;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.src-item:hover { background: rgba(0,0,0,.03); }
+.src-item.active {
+  background: var(--accent-lt);
+  border-left-color: var(--accent);
+}
+.src-item.in-trail { border-left-color: var(--border); }
+
+.si-title {
+  font-size: 12.5px; font-weight: 500; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.si-meta {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted);
+}
+.si-favicon {
+  width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
+}
+.si-domain {
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.si-type {
+  font-size: 9.5px; font-weight: 600;
+  padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* ── TRAIL ── */
+.trail-area {
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+}
+.trail-head {
+  padding: 10px 14px 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.trail-clear {
+  font-size: 10px; color: var(--muted); cursor: pointer;
+  background: none; border: none; font-family: 'Inter', sans-serif;
+  transition: color .15s;
+}
+.trail-clear:hover { color: var(--text); }
+
+.trail-query {
+  font-size: 11px; color: var(--muted); font-style: italic;
+  padding: 0 14px 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.trail-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 4px 14px; cursor: pointer;
+  transition: background .12s;
+}
+.trail-item:hover { background: rgba(0,0,0,.03); }
+.trail-item.t-current .t-dot { background: var(--accent); }
+.trail-item.t-current .t-label { font-weight: 600; color: var(--accent); }
+
+.t-spine {
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 5px; flex-shrink: 0;
+}
+.t-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+}
+.t-line {
+  width: 1px; flex: 1; background: var(--border); min-height: 10px;
+}
+.t-label {
+  font-size: 11.5px; line-height: 1.35; flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+  padding-top: 1px;
+}
+
+/* ── CENTER PANEL ── */
+.cpanel {
+  flex: 1; overflow-y: auto; background: var(--surface);
+  display: flex; flex-direction: column;
+  position: relative;
+}
+
+/* empty */
+.c-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 48px; text-align: center;
+  color: var(--muted); gap: 12px;
+}
+.c-empty-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 52px; opacity: .1; letter-spacing: -.5px; color: var(--text);
+}
+.c-empty-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; color: var(--text); opacity: .7;
+}
+.c-empty-sub {
+  font-size: 13px; font-weight: 300; line-height: 1.7;
+  max-width: 380px; color: var(--muted);
+}
+.c-empty-hints {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin-top: 8px;
+}
+.c-hint {
+  font-size: 12px; color: var(--muted);
+  background: var(--faint); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px; cursor: pointer;
+  transition: all .2s;
+}
+.c-hint:hover { border-color: var(--accent); color: var(--accent); }
+
+/* loading */
+.c-loading {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; color: var(--muted); font-size: 13px;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+/* reader */
+.reader {
+  max-width: 680px; width: 100%;
+  margin: 0 auto; padding: 40px 48px 100px;
+  animation: fadeIn .25s ease;
+}
+
+.reader-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 28px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.reader-fav {
+  width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+}
+.reader-domain { font-size: 12px; color: var(--muted); font-weight: 500; flex: 1; }
+.reader-type {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.reader-open {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: var(--accent);
+  text-decoration: none; padding: 5px 12px;
+  border: 1.5px solid var(--accent-lt); border-radius: 7px;
+  background: var(--accent-lt); transition: all .2s; flex-shrink: 0;
+}
+.reader-open:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.reader-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2; letter-spacing: -.3px;
+  margin-bottom: 24px;
+}
+
+.reader-body {
+  font-family: 'Lora', serif;
+  font-size: 16.5px; line-height: 1.78; color: #2c2920;
+}
+.reader-body h1, .reader-body h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.3em; margin: 1.6em 0 .5em;
+  color: var(--text); letter-spacing: -.2px; font-style: normal;
+}
+.reader-body h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: .95em; font-weight: 600; margin: 1.4em 0 .4em; color: var(--text);
+}
+.reader-body p { margin-bottom: 1.1em; }
+.reader-body a {
+  color: var(--accent); text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reader-body a:hover { text-decoration: none; }
+.reader-body strong { font-weight: 700; color: var(--text); }
+.reader-body em { font-style: italic; }
+.reader-body ul, .reader-body ol { padding-left: 1.4em; margin-bottom: 1em; }
+.reader-body li { margin-bottom: .4em; }
+.reader-body blockquote {
+  border-left: 3px solid var(--border);
+  padding: .2em 0 .2em 1em; color: var(--muted);
+  margin: 1em 0; font-style: italic;
+}
+.reader-body pre {
+  background: var(--faint); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+  font-family: monospace; font-size: .88em;
+  overflow-x: auto; margin-bottom: 1em;
+  white-space: pre-wrap;
+}
+.reader-body code {
+  font-family: monospace; font-size: .88em;
+  background: var(--faint); padding: 1px 5px; border-radius: 3px;
+}
+.reader-body hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
+
+.reader-note {
+  margin-top: 32px; padding: 14px 16px;
+  background: var(--faint); border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 12.5px; color: var(--muted); font-family: 'Inter', sans-serif;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+
+.reader-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 0; margin-top: 40px;
+  border-top: 1px solid var(--border);
+}
+.rnav-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 500; color: var(--muted);
+  cursor: pointer; background: none; border: none;
+  font-family: 'Inter', sans-serif; padding: 7px 11px; border-radius: 7px;
+  transition: all .15s;
+}
+.rnav-btn:hover { color: var(--text); background: var(--faint); }
+.rnav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* search results note */
+.c-results-bar {
+  padding: 10px 48px;
+  font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+/* ── RIGHT PANEL ── */
+.rpanel {
+  width: 0; min-width: 0; overflow: hidden;
+  background: var(--sidebar);
+  border-left: 1px solid var(--border);
+  transition: width .35s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.rpanel.open { width: 252px; min-width: 252px; }
+
+.rp-inner {
+  width: 252px; min-width: 252px;
+  display: flex; flex-direction: column;
+  height: 100%; overflow-y: auto;
+  padding: 18px 15px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.rp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.rp-title-wrap {
+  display: flex; align-items: center; gap: 6px;
+}
+.rp-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted);
+  background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 3px;
+}
+.rp-close-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); padding: 4px 6px; border-radius: 5px;
+  font-size: 13px; transition: all .15s; font-family: 'Inter', sans-serif;
+}
+.rp-close-btn:hover { color: var(--text); background: rgba(0,0,0,.05); }
+
+.rp-intro {
+  font-size: 11.5px; color: var(--muted); font-weight: 300;
+  line-height: 1.6; margin-bottom: 18px;
+  font-style: italic;
+}
+
+.rp-section { margin-bottom: 18px; }
+.rp-sec-head {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 7px; display: flex; align-items: center; gap: 5px;
+}
+
+.rp-item {
+  font-size: 12px; line-height: 1.5; color: var(--text);
+  padding: 8px 10px; border-radius: 8px;
+  margin-bottom: 5px;
+}
+.rp-item.tension {
+  background: rgba(146,64,14,.07);
+  border-left: 2px solid #b45309;
+  color: var(--amber);
+}
+.rp-item.path {
+  background: var(--accent-lt);
+  border-left: 2px solid var(--accent);
+  cursor: pointer; transition: background .15s;
+  color: #1a3aab;
+}
+.rp-item.path:hover { background: rgba(41,82,227,.12); }
+.rp-item.question {
+  background: rgba(0,0,0,.025);
+  color: var(--muted); font-style: italic;
+}
+
+.rp-loading {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--muted); padding: 6px 2px;
+}
+
+/* ── ORIENT TOGGLE (when panel closed) ── */
+.orient-pill {
+  position: fixed; right: 0; top: 50%;
+  transform: translateY(-50%);
+  background: var(--sidebar); border: 1px solid var(--border);
+  border-right: none; border-radius: 8px 0 0 8px;
+  padding: 10px 7px; cursor: pointer; z-index: 20;
+  writing-mode: vertical-rl;
+  font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted);
+  transition: all .2s; display: none;
+}
+.orient-pill:hover { color: var(--text); background: var(--surface); }
+.orient-pill.visible { display: flex; }
+.orient-pill.hidden { display: none; }
+
+/* ── ANIMATIONS ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .lpanel { width: 220px; min-width: 220px; }
+  .reader { padding: 28px 24px 80px; }
+  .rpanel.open {
+    position: fixed; right: 0; top: 0;
+    height: 100vh; z-index: 100;
+    width: 260px !important; min-width: 260px !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="lpanel">
+    <div class="lp-top">
+      <div class="brand">Arca<span>.</span></div>
+      <div class="search-wrap">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input id="searchInput" placeholder="Inquire…" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="source-list" id="sourceList">
+      <div class="lp-empty">
+        Search to begin exploring the web.
+        <div class="lp-hints">
+          <button class="lp-hint" onclick="hint('how the internet actually works')">how the internet actually works</button>
+          <button class="lp-hint" onclick="hint('sleep and memory consolidation')">sleep and memory consolidation</button>
+          <button class="lp-hint" onclick="hint('small language models 2024')">small language models 2024</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="trail-area" id="trailArea">
+      <div class="trail-head">
+        Trail
+        <button class="trail-clear" onclick="clearTrail()">clear</button>
+      </div>
+      <div class="trail-query" id="trailQuery"></div>
+      <div id="trailItems"></div>
+    </div>
+  </div>
+
+  <!-- ── CENTER PANEL ── -->
+  <div class="cpanel" id="cpanel">
+    <div class="c-empty" id="cEmpty">
+      <div class="c-empty-logo">Arca</div>
+      <div class="c-empty-title">Explore the living web</div>
+      <div class="c-empty-sub">
+        Search for anything. Click a source to read it here.
+        Follow your curiosity across sources.
+        The trail remembers where you've been.
+      </div>
+      <div class="c-empty-hints">
+        <span class="c-hint" onclick="hint('forum discussions vs academic papers')">forum discussions vs academic papers</span>
+        <span class="c-hint" onclick="hint('independent web writing')">independent web writing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="rpanel" id="rpanel">
+    <div class="rp-inner">
+      <div class="rp-head">
+        <div class="rp-title-wrap">
+          <span class="rp-badge">AI · Ambient</span>
+        </div>
+        <button class="rp-close-btn" onclick="closeOrientation()">✕</button>
+      </div>
+      <div class="rp-intro">Light orientation as you explore — not answers.</div>
+      <div id="rpContent">
+        <div class="rp-loading">
+          <div class="spinner"></div> Reading your sources…
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Orient toggle pill -->
+<div class="orient-pill" id="orientPill" onclick="openOrientation()">Orientation</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────
+let query        = '';
+let sources      = [];       // all sources from search
+let trail        = [];       // [{...source, content?}] — visited sources
+let trailPos     = -1;       // current index in trail
+let currentSrc   = null;     // currently displayed source
+let rpOpen       = false;
+let orientTimer  = null;
+
+// ── INIT ──────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+function hint(q) {
+  document.getElementById('searchInput').value = q;
+  doSearch();
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+  query = q;
+
+  showCenterLoading('Searching across the web…');
+  renderSourceList(null, true); // show loading state
+
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Search failed');
+    sources = data.groups || [];
+    renderSourceList(data.groups);
+    showCenterEmpty(true); // show "select a source" state
+  } catch (err) {
+    renderSourceList(null);
+    showCenterError(err.message);
+  }
+}
+
+// ── SOURCE LIST ───────────────────────────────────────────────────
+function renderSourceList(groups, loading = false) {
+  const el = document.getElementById('sourceList');
+  if (loading) {
+    el.innerHTML = '<div class="lp-empty">Retrieving sources…</div>';
+    return;
+  }
+  if (!groups || groups.every(g => !g.sources.length)) {
+    el.innerHTML = '<div class="lp-empty">No sources found. Try a different query.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const group of groups) {
+    if (!group.sources.length) continue;
+    html += `<div class="group-label">${group.icon} ${esc(group.label)}</div>`;
+    for (const src of group.sources) {
+      const inTrail = trail.some(t => t.url === src.url);
+      const isActive = currentSrc && currentSrc.url === src.url;
+      const typeStyle = typeStyles(src.source);
+      html += `
+      <div class="src-item ${isActive ? 'active' : ''} ${inTrail && !isActive ? 'in-trail' : ''}"
+           onclick="openSource(${JSON.stringify(src).replace(/"/g,'&quot;')})">
+        <div class="si-title">${esc(src.title)}</div>
+        <div class="si-meta">
+          <img class="si-favicon"
+               src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.displayUrl)}&sz=32"
+               onerror="this.style.display='none'" />
+          <span class="si-domain">${esc(src.displayUrl)}</span>
+          <span class="si-type" style="${typeStyle}">${esc(src.sourceLabel)}</span>
+        </div>
+      </div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+// ── OPEN SOURCE ───────────────────────────────────────────────────
+async function openSource(src) {
+  if (currentSrc && currentSrc.url === src.url) return;
+
+  currentSrc = src;
+  showCenterLoading(`Reading ${src.displayUrl}…`);
+  refreshSourceList();
+
+  // Add to trail
+  const alreadyInTrail = trail.findIndex(t => t.url === src.url);
+  if (alreadyInTrail >= 0) {
+    trailPos = alreadyInTrail;
+  } else {
+    trail.push({ ...src });
+    trailPos = trail.length - 1;
+  }
+  renderTrail();
+
+  // Fetch content
+  try {
+    const res = await fetch('/api/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: src.url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not retrieve page');
+
+    trail[trailPos].content = data.content;
+    trail[trailPos].fetchedTitle = data.title;
+    renderReader(src, data.content, data.title);
+    refreshSourceList();
+
+    // Trigger ambient orientation after a moment
+    clearTimeout(orientTimer);
+    orientTimer = setTimeout(() => triggerOrientation(), 1800);
+
+  } catch (err) {
+    showCenterError(`Could not retrieve this source: ${err.message}`);
+  }
+}
+
+// ── READER ────────────────────────────────────────────────────────
+function renderReader(src, content, fetchedTitle) {
+  const title = fetchedTitle || src.title;
+  const typeStyle = typeStyles(src.source);
+  const canBack = trailPos > 0;
+  const canFwd  = trailPos < trail.length - 1;
+
+  const html = `
+  <div class="reader">
+    <div class="reader-bar">
+      <img class="reader-fav"
+           src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.displayUrl)}&sz=32"
+           onerror="this.style.display='none'" />
+      <span class="reader-domain">${esc(src.displayUrl)}</span>
+      <span class="reader-type" style="${typeStyle}">${esc(src.sourceLabel)}</span>
+      <a class="reader-open" href="${escAttr(src.url)}" target="_blank" rel="noopener">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        Open original
+      </a>
+    </div>
+
+    <h1 class="reader-title">${esc(title)}</h1>
+
+    <div class="reader-body">${mdToHtml(content)}</div>
+
+    <div class="reader-note">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;color:var(--muted)">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      Content retrieved from <strong>${esc(src.displayUrl)}</strong>.
+      Always verify at the
+      <a href="${escAttr(src.url)}" target="_blank" rel="noopener">original source ↗</a>.
+    </div>
+
+    <div class="reader-nav">
+      <button class="rnav-btn" onclick="trailNavigate(-1)" ${canBack ? '' : 'disabled'}>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        ${canBack ? esc(trail[trailPos - 1].title.slice(0, 28) + '…') : 'Beginning of trail'}
+      </button>
+      <span style="font-size:11px;color:var(--muted)">${trailPos + 1} / ${trail.length}</span>
+      <button class="rnav-btn" onclick="trailNavigate(1)" ${canFwd ? '' : 'disabled'}>
+        ${canFwd ? esc(trail[trailPos + 1].title.slice(0, 28) + '…') : 'End of trail'}
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>`;
+
+  document.getElementById('cpanel').innerHTML = html;
+  document.getElementById('cpanel').scrollTop = 0;
+}
+
+function trailNavigate(dir) {
+  const newPos = trailPos + dir;
+  if (newPos < 0 || newPos >= trail.length) return;
+  openSource(trail[newPos]);
+}
+
+// ── TRAIL ─────────────────────────────────────────────────────────
+function renderTrail() {
+  if (!trail.length) {
+    document.getElementById('trailArea').style.display = 'none';
+    return;
+  }
+  document.getElementById('trailArea').style.display = 'block';
+  document.getElementById('trailQuery').textContent = `"${query}"`;
+
+  let html = '';
+  trail.forEach((t, i) => {
+    const isCurrent = i === trailPos;
+    const isLast = i === trail.length - 1;
+    html += `
+    <div class="trail-item ${isCurrent ? 't-current' : ''}" onclick="openSource(${JSON.stringify(t).replace(/"/g,'&quot;')})">
+      <div class="t-spine">
+        <div class="t-dot"></div>
+        ${!isLast ? '<div class="t-line"></div>' : ''}
+      </div>
+      <div class="t-label">${esc(t.title)}</div>
+    </div>`;
+  });
+  document.getElementById('trailItems').innerHTML = html;
+}
+
+function clearTrail() {
+  trail = [];
+  trailPos = -1;
+  currentSrc = null;
+  renderTrail();
+  refreshSourceList();
+  showCenterEmpty(true);
+  closeOrientation();
+}
+
+// ── AI ORIENTATION ────────────────────────────────────────────────
+async function triggerOrientation() {
+  if (trail.length < 1) return;
+
+  // Open panel, show loading
+  openOrientation();
+  document.getElementById('rpContent').innerHTML = `
+    <div class="rp-loading">
+      <div class="spinner"></div> Orienting…
+    </div>`;
+
+  try {
+    const trailPayload = trail.slice(-6).map(t => ({
+      title: t.title,
+      displayUrl: t.displayUrl,
+      sourceLabel: t.sourceLabel,
+      snippet: t.snippet || '',
+      excerpt: (t.content || '').slice(0, 600)
+    }));
+
+    const res = await fetch('/api/orient', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trail: trailPayload, query })
+    });
+    const data = await res.json();
+    renderOrientation(data);
+  } catch {
+    closeOrientation();
+  }
+}
+
+function renderOrientation(data) {
+  const { tensions = [], paths = [], questions = [] } = data;
+  if (!tensions.length && !paths.length && !questions.length) {
+    closeOrientation();
+    return;
+  }
+
+  let html = '';
+
+  if (tensions.length) {
+    html += `<div class="rp-section">
+      <div class="rp-sec-head">⚡ Tensions</div>
+      ${tensions.map(t => `<div class="rp-item tension">${esc(t)}</div>`).join('')}
+    </div>`;
+  }
+
+  if (paths.length) {
+    html += `<div class="rp-section">
+      <div class="rp-sec-head">→ Unexplored paths</div>
+      ${paths.map(p => `<div class="rp-item path" onclick="hint(${JSON.stringify(p)})">${esc(p)}</div>`).join('')}
+    </div>`;
+  }
+
+  if (questions.length) {
+    html += `<div class="rp-section">
+      <div class="rp-sec-head">? Worth asking</div>
+      ${questions.map(q => `<div class="rp-item question">${esc(q)}</div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('rpContent').innerHTML = html;
+}
+
+function openOrientation() {
+  rpOpen = true;
+  document.getElementById('rpanel').classList.add('open');
+  document.getElementById('orientPill').classList.remove('visible');
+  document.getElementById('orientPill').classList.add('hidden');
+}
+
+function closeOrientation() {
+  rpOpen = false;
+  document.getElementById('rpanel').classList.remove('open');
+  if (trail.length > 0) {
+    document.getElementById('orientPill').classList.add('visible');
+    document.getElementById('orientPill').classList.remove('hidden');
+  }
+}
+
+// ── CENTER HELPERS ────────────────────────────────────────────────
+function showCenterLoading(msg = 'Loading…') {
+  document.getElementById('cpanel').innerHTML = `
+    <div class="c-loading">
+      <div class="spinner"></div>
+      <span>${esc(msg)}</span>
+    </div>`;
+}
+
+function showCenterEmpty(searched = false) {
+  if (searched) {
+    document.getElementById('cpanel').innerHTML = `
+      <div class="c-empty" style="padding-top:40px">
+        <div class="c-empty-title" style="font-size:17px;opacity:.5">Select a source to read</div>
+        <div class="c-empty-sub">${sources.reduce((n, g) => n + g.sources.length, 0)} sources found. Click any item on the left to open it here.</div>
+      </div>`;
+  } else {
+    document.getElementById('cpanel').innerHTML = document.getElementById('cEmpty')?.outerHTML || '';
+  }
+}
+
+function showCenterError(msg) {
+  document.getElementById('cpanel').innerHTML = `
+    <div class="c-empty">
+      <div class="c-empty-title" style="opacity:.4">Couldn't retrieve this page</div>
+      <div class="c-empty-sub">${esc(msg)}<br><br>
+        <a href="${currentSrc?.url || '#'}" target="_blank" rel="noopener" style="color:var(--accent)">Open in browser instead ↗</a>
+      </div>
+    </div>`;
+}
+
+function refreshSourceList() {
+  if (sources.length) renderSourceList(sources);
+}
+
+// ── MARKDOWN RENDERER ─────────────────────────────────────────────
+function mdToHtml(text) {
+  if (!text) return '<p style="color:var(--muted);font-style:italic">No content could be retrieved from this page. Try opening it directly.</p>';
+
+  // Preserve code blocks before escaping
+  const codeBlocks = [];
+  text = text.replace(/```[\s\S]*?```/g, match => {
+    codeBlocks.push(match);
+    return `%%CODE${codeBlocks.length - 1}%%`;
+  });
+
+  // Escape HTML
+  let h = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Restore code blocks (escaped)
+  codeBlocks.forEach((block, i) => {
+    const inner = block.slice(3, -3).replace(/^[a-z]+\n/, '');
+    h = h.replace(`%%CODE${i}%%`, `<pre><code>${inner.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`);
+  });
+
+  // Headers
+  h = h.replace(/^#### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  h = h.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+
+  // HR
+  h = h.replace(/^---+$/gm, '<hr>');
+
+  // Bold, italic
+  h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Inline code
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Links
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // Blockquotes
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Unordered lists
+  h = h.replace(/^[\*\-\+] (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/(<li>.*?<\/li>\n?)+/gs, m => `<ul>${m}</ul>`);
+
+  // Ordered lists
+  h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // Paragraphs
+  const lines = h.split('\n');
+  const paras = [];
+  let buf = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (buf.length) { paras.push('<p>' + buf.join(' ') + '</p>'); buf = []; }
+    } else if (/^<(h[1-6]|ul|ol|li|blockquote|pre|hr)/.test(trimmed)) {
+      if (buf.length) { paras.push('<p>' + buf.join(' ') + '</p>'); buf = []; }
+      paras.push(trimmed);
+    } else {
+      buf.push(trimmed);
+    }
+  }
+  if (buf.length) paras.push('<p>' + buf.join(' ') + '</p>');
+
+  return paras.join('\n');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function typeStyles(source) {
+  const map = {
+    reddit:           'background:#fff1ec;color:#c2410c;',
+    hackernews:       'background:#fff7ed;color:#b45309;',
+    stackexchange:    'background:#f0f9ff;color:#0369a1;',
+    wikipedia:        'background:#f0fdf4;color:#15803d;',
+    pubmed:           'background:#ecfdf5;color:#047857;',
+    arxiv:            'background:#ecfdf5;color:#065f46;',
+    semantic_scholar: 'background:#f0fdf4;color:#15803d;',
+    openlibrary:      'background:#fdf4ff;color:#7e22ce;',
+    github:           'background:#f1f5f9;color:#334155;',
+    marginalia:       'background:#fdf4ff;color:#6b21a8;',
+    gdelt:            'background:#eff6ff;color:#1d4ed8;',
+    google:           'background:#f8fafc;color:#475569;',
+    youtube:          'background:#fff1f2;color:#be123c;',
+    ted:              'background:#fff1f2;color:#be123c;',
+  };
+  return map[source] || 'background:var(--faint);color:var(--muted);';
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;');
+}
+</script>
+</body>
 </html>
