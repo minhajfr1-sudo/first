@@ -196,12 +196,13 @@ toc = [
     ("2.", "Executive summary", "3"),
     ("3.", "Problem analysis and value proposition", "4"),
     ("4.", "Market research and strategy", "6"),
-    ("5.", "Business model", "10"),
-    ("6.", "Human resources, risks and mitigation", "13"),
-    ("7.", "Financial forecasts", "15"),
-    ("8.", "Legal and organisational structure", "17"),
-    ("9.", "Roadmap", "19"),
-    ("10.", "Appendix", "20"),
+    ("5.", "Business model (incl. service standards)", "10"),
+    ("6.", "Human resources, risks and mitigation", "14"),
+    ("7.", "Financial forecasts", "16"),
+    ("8.", "Legal and organisational structure", "18"),
+    ("9.", "Roadmap", "20"),
+    ("10.", "Appendix (glossary, sources, community,"
+            " sustainability, waste, fire safety)", "21"),
 ]
 TBL2(["#", "Section", "Page"], toc, col_widths=[1.5 * cm, 12 * cm, 2 * cm])
 P(
@@ -375,6 +376,18 @@ P(
     "but below what students currently pay once you add furniture, "
     "internet, gym and insurance separately."
 )
+P(
+    "Two structural facts about the French student housing market frame "
+    "everything else in this plan. First, the public operator CROUS "
+    "(Centre Regional des Oeuvres Universitaires et Scolaires) manages "
+    "roughly 175,000 publicly owned rooms across France, but waiting "
+    "lists are long and allocation favours French and EU students on "
+    "scholarship. Second, the privately operated stock is fragmented "
+    "across small landlords. Of an estimated 350,000 rooms in the "
+    "broader French student market, fewer than 15% are professionally "
+    "managed. That gap, between public scarcity and private fragmentation, "
+    "is where Euronest sits."
+)
 H2("4.2 Customer segments")
 BULLETS([
     "Non-EU master's students. Our primary segment. High willingness to "
@@ -394,11 +407,20 @@ TBL2(
     [
         ["Airbnb", "Very large", "None (listings only)", "Higher per night, no contract"],
         ["Studapart", "Large", "Booking only", "Similar rent, fewer extras"],
+        ["Uniplaces", "Pan-European", "Booking + verified listings",
+         "Similar headline rent, no service bundle"],
+        ["HousingAnywhere", "Pan-European, peer-to-peer",
+         "Free for both sides, paid premium add-ons",
+         "Lower, but no guarantor and no support"],
+        ["Student.com", "Global, mostly PBSA partners",
+         "Booking + concierge for international students",
+         "Variable, depends on partner property"],
         ["Lokaviz / ImmoJeune", "Medium", "Listings + filters", "Lower, but DIY"],
         ["Local rental agencies", "Medium", "Paperwork", "Higher once fees are added"],
-        ["University residences (CROUS)", "Small per city", "Basic", "Lower price, very limited spots"],
+        ["CROUS residences", "~175,000 rooms nationally",
+         "Basic public housing", "Lower, but allocation favours French / EU"],
     ],
-    col_widths=[4.2 * cm, 3 * cm, 4.5 * cm, 4.3 * cm],
+    col_widths=[4.2 * cm, 3.8 * cm, 4.5 * cm, 4 * cm],
 )
 P(
     "The honest read on this table: nobody is doing what we want to do, "
@@ -661,6 +683,69 @@ NUMS([
     "stay. Maintenance issues are routed to vetted local handymen with "
     "a 48-hour response target.",
 ])
+
+H2("5.10 Service standards")
+P(
+    "We publish the standards below in every lease. Students know what "
+    "to expect; coordinators know what they are accountable for."
+)
+
+H3("Maintenance response")
+TBL2(
+    ["Priority", "Response", "Examples"],
+    [
+        ["Emergency", "Within 24 hours",
+         "No power, water leak, lock failure, anything that affects "
+         "safety or makes the unit unliveable."],
+        ["Urgent", "Within 5 working days",
+         "Broken appliance, faulty heater, internet outage longer than "
+         "48 hours."],
+        ["Non-urgent", "Within 28 days",
+         "Single light fitting, sticking door or window, minor cosmetic "
+         "repair."],
+    ],
+    col_widths=[3.2 * cm, 3.5 * cm, 9.3 * cm],
+)
+
+H3("Reception and on-call coverage")
+BULLETS([
+    "Coordinator availability on WhatsApp: Monday to Friday 09:00 to "
+    "20:00, Saturday 10:00 to 17:00, with extended hours during the "
+    "September and January intake weeks.",
+    "Out-of-hours emergency line answered by a duty coordinator. "
+    "Routed to the on-call manager if unanswered after five minutes.",
+    "Each subscriber has a single named coordinator. We refuse the "
+    "round-robin call centre pattern. The same person who onboards the "
+    "student handles their tenancy until move-out.",
+])
+
+H3("Housekeeping and common areas")
+P(
+    "In a shared apartment, the residents clean their own kitchen, "
+    "bathroom and bedrooms. Anything we manage (shared entrance, "
+    "building-level laundry, our coordinator office) follows this "
+    "schedule:"
+)
+TBL2(
+    ["Area", "Frequency", "Owner"],
+    [
+        ["Building entrance and stairwell", "Weekly", "Building syndic"],
+        ["Shared laundry room", "Twice weekly", "Euronest contractor"],
+        ["Apartment deep-clean between tenants", "Once per turnover",
+         "Specialist cleaning contractor"],
+        ["Window cleaning", "Annual (June)", "Specialist contractor"],
+    ],
+    col_widths=[6 * cm, 4 * cm, 6 * cm],
+)
+
+H3("Quiet hours and neighbourhood relations")
+P(
+    "Quiet hours are 22:00 to 07:00 every night. Subscribers sign up to "
+    "this in the lease. The first complaint from a neighbour is a "
+    "conversation; the second is a written warning; the third is a "
+    "EUR 100 charge against the deposit; the fourth ends the lease. "
+    "We tell students this on day one so nobody is surprised."
+)
 PBR()
 
 # =====================================================================
@@ -982,7 +1067,78 @@ P(
     "roadmap, and appendix. Each section in the body of this plan maps "
     "one-to-one to that outline."
 )
-H2("D. Contact")
+
+H2("D. Community and neighbourhood engagement")
+P(
+    "Euronest is a tenant in shared buildings. Our presence is felt "
+    "by the neighbours whether we plan for it or not, so we plan for "
+    "it."
+)
+BULLETS([
+    "A named coordinator introduces themselves to the building syndic "
+    "and immediate neighbours within the first week of taking on any "
+    "new property.",
+    "We publish a phone number that local residents can call about "
+    "noise or other concerns. Calls are answered the same day.",
+    "We work with the student association of each partner university "
+    "to point new arrivals towards volunteering and language exchanges. "
+    "The point is to give students reasons to be in the neighbourhood "
+    "during the day, not only at night.",
+    "A short code of conduct (noise, deliveries, common areas) is "
+    "included in the welcome pack and signed at move-in.",
+])
+
+H2("E. Sustainability and travel")
+P(
+    "We are not building a car-dependent product. The cities we operate "
+    "in have working public transport, and our subscribers are mostly "
+    "students without a car. The choices below follow from that, not "
+    "from a green badge on the website."
+)
+BULLETS([
+    "No allocated parking spaces in any unit. Where a building offers "
+    "parking, we reassign it to the syndic.",
+    "Secure bike storage at every property. Where the building has "
+    "none, we install it.",
+    "Welcome pack includes the Navigo / TCL / Ilevia transit pass for "
+    "the relevant city, plus a one-month season ticket pre-loaded.",
+    "Only properties at DPE energy class D or better are signed. "
+    "We renegotiate or walk away from anything worse.",
+    "Annual review of the energy spend per square metre across the "
+    "portfolio. Properties in the bottom quartile are flagged for "
+    "non-renewal.",
+])
+
+H2("F. Waste and recycling")
+P(
+    "Each apartment gets two indoor bins (general and recycling) and a "
+    "clear label about what goes where. Move-in includes a five-minute "
+    "walkthrough of the waste room in the building. At move-out we run "
+    "a reuse drive in partnership with Emmaus or a local equivalent: "
+    "furniture, kitchenware and clothes that subscribers do not want "
+    "to ship home are collected and donated rather than dumped on the "
+    "kerb."
+)
+
+H2("G. Fire and life safety")
+P(
+    "Statement of intent. Euronest takes responsibility for the safety "
+    "of subscribers in the units we head-lease. In practice that means:"
+)
+BULLETS([
+    "Every unit has a working smoke detector tested at move-in and "
+    "annually thereafter.",
+    "Fire blanket and a 2 kg dry-powder extinguisher in each apartment "
+    "kitchen.",
+    "Evacuation diagram fitted inside the front door of every unit, "
+    "in French and English.",
+    "Personal Emergency Evacuation Plan (PEEP) prepared on request for "
+    "any subscriber with a declared disability.",
+    "Annual fire risk assessment by a French certified consultant. "
+    "Findings logged and remediated within 60 days.",
+])
+
+H2("H. Contact")
 P("Euronest founding team<br/>ISTEC, Paris<br/>founders@euronest.eu")
 
 
