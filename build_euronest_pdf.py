@@ -296,7 +296,9 @@ BULLETS([
     "early-exit clauses or the deposit conditions.",
     "Fragmented setup. Internet, electricity, home insurance, gym, food "
     "and transit each require a separate sign-up with different paperwork "
-    "and different cancellation rules.",
+    "and different cancellation rules. Doing all of it alone, in a new "
+    "country, turns the first weeks into pure admin and deepens the "
+    "sense of isolation.",
     "No safety net. When something goes wrong (broken boiler, missing "
     "deposit, dispute with the landlord) the student has no one to call "
     "who is on their side and speaks their language.",
@@ -319,7 +321,7 @@ P(
     "and a contract they can read is worth a measurable premium."
 )
 H2("3.3 Our value proposition")
-P("Euronest gives a student three things that are missing from the current market:")
+P("Euronest gives a student four things that are missing from the current market:")
 NUMS([
     "A verified apartment. Every property is visited by a team member or "
     "a vetted local partner before it is listed. We refuse roughly a "
@@ -327,11 +329,18 @@ NUMS([
     "A single price. Rent, utilities, internet and the chosen lifestyle "
     "services come in one monthly invoice. No separate bills, no surprise "
     "deposits, no guarantor required for the standard and premium tiers "
-    "because Euronest itself acts as the guarantor.",
+    "because Euronest itself acts as the guarantor. Every payment "
+    "produces an automatic rent receipt, the document students need for "
+    "the CAF housing subsidy and for visa renewals.",
     "One human contact. Each subscriber gets a named coordinator who "
     "speaks at least English plus one of French, Hindi, Arabic or "
     "Mandarin. They handle paperwork in the first month and stay "
     "reachable for the rest of the stay.",
+    "A way into the community. Students who want a shared apartment are "
+    "matched with roommates by study schedule, budget and daily habits, "
+    "rather than left to chance. A social circle that is already in "
+    "place at move-in is the single thing that most softens the "
+    "loneliness of a first month abroad.",
 ])
 H2("3.4 What makes the offer hard to copy")
 P(
@@ -1038,6 +1047,8 @@ BULLETS([
     "tenant protections.",
     "BSPCE: bons de souscription de parts de createur d'entreprise. The "
     "French equivalent of employee stock options.",
+    "CAF: Caisse d'Allocations Familiales. The French agency that pays "
+    "housing assistance, including aid that students can claim.",
     "DPE: Diagnostic de Performance Energetique. Energy rating for a "
     "French property.",
     "LMNP / LMP: tax regimes for non-professional and professional "
