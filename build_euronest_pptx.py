@@ -97,7 +97,7 @@ def header_band(slide, title, eyebrow=None):
 
 
 def footer(slide, page_no):
-    add_text(slide, "Euronest  |  Business Plan  |  April 2026",
+    add_text(slide, "Euronest  |  Pitch Deck  |  April 2026",
              Inches(0.7), Inches(7.05), Inches(8), Inches(0.3),
              size=9, color=MUTED)
     add_text(slide, str(page_no),
@@ -152,7 +152,7 @@ add_text(s, "ISTEC, Paris", Inches(0.9), Inches(4.75),
          Inches(10), Inches(0.5), size=14, color=LIGHT)
 add_text(s,
          "Mansoor Ali  ·  Fidha Fathima Panankavil  ·  Leo Joy  ·  Nithin Stanley George\n"
-         "Minhaj Eshwaramangalam  ·  Gopinath Dasan  ·  Pallampettivelayudhan Nithin",
+         "Minhaj Eswaramangalam  ·  Gopinath Dasan  ·  Nithin Pallampetti Velayudhan",
          Inches(0.9), Inches(5.5), Inches(11), Inches(0.8),
          size=13, color=LIGHT)
 
@@ -757,11 +757,11 @@ team = [
      "Audit and corporate finance; runs the model and the raise."),
     ("Nithin Stanley George", "CTO, platform",
      "Software engineer; website, app and payments."),
-    ("Minhaj Eshwaramangalam", "Head of marketing",
+    ("Minhaj Eswaramangalam", "Head of marketing",
      "Digital marketing; paid social, content, referral programme."),
     ("Gopinath Dasan", "Head of student support",
      "Multilingual customer service; coordinator team lead."),
-    ("Pallampettivelayudhan Nithin", "Head of legal & compliance",
+    ("Nithin Pallampetti Velayudhan", "Head of legal & compliance",
      "Law graduate; lease templates, GDPR, regulatory tracking."),
 ]
 # 4 + 3 layout

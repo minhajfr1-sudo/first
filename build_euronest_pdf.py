@@ -180,9 +180,9 @@ P("ISTEC, Paris &middot; April 2026", cover_meta_style)
 story.append(Spacer(1, 1.4 * cm))
 P("Mansoor Ali &middot; Fidha Fathima Panankavil &middot; Leo Joy",
   cover_meta_style)
-P("Nithin Stanley George &middot; Minhaj Eshwaramangalam",
+P("Nithin Stanley George &middot; Minhaj Eswaramangalam",
   cover_meta_style)
-P("Gopinath Dasan &middot; Pallampettivelayudhan Nithin", cover_meta_style)
+P("Gopinath Dasan &middot; Nithin Pallampetti Velayudhan", cover_meta_style)
 story.append(Spacer(1, 1.4 * cm))
 P("<i>Contact: founders@euronest.eu</i>", cover_meta_style)
 PBR()
@@ -469,7 +469,7 @@ TBL2(
         ["Referral payouts", "9,000",
          "EUR 80 per completed booking. Funded only when revenue is "
          "received."],
-        ["Campus partnerships",  "5,000",
+        ["Campus partnerships", "5,000",
          "Stand at student associations, welcome events, leaflet print "
          "runs at five Paris schools."],
         ["Influencer collaborations", "7,000",
@@ -602,9 +602,9 @@ P(
 )
 H2("5.4 Revenue streams")
 BULLETS([
-    "Subscription revenue (90% of total). Monthly or six-month prepay.",
-    "Landlord commission (6%). On apartments we list but do not lease "
-    "ourselves, we keep a commission on the first month of rent.",
+    "Subscription revenue (about 90% of total). Monthly or six-month prepay.",
+    "Landlord commission. On apartments we list but do not head-lease "
+    "ourselves, we take a 6% commission on the first month of rent.",
     "Service partner share. Gyms, ISPs and meal providers pay us a "
     "fixed margin on each subscriber we route to them.",
     "Gift vouchers and family top-ups. Parents buy credit that students "
@@ -770,11 +770,11 @@ TBL2(
          "Audit and corporate finance; runs the financial model and fundraising."],
         ["Nithin Stanley George", "CTO, platform",
          "Software engineer; owns the website, app and payments."],
-        ["Minhaj Eshwaramangalam", "Head of marketing",
+        ["Minhaj Eswaramangalam", "Head of marketing",
          "Digital marketing; runs paid social, content and the referral programme."],
         ["Gopinath Dasan", "Head of student support",
          "Multilingual customer service background; coordinator team lead."],
-        ["Pallampettivelayudhan Nithin", "Head of legal &amp; compliance",
+        ["Nithin Pallampetti Velayudhan", "Head of legal &amp; compliance",
          "Law graduate; manages lease templates, GDPR, regulatory tracking."],
     ],
     col_widths=[4.5 * cm, 4 * cm, 8 * cm],
@@ -938,9 +938,9 @@ TBL2(
         ["Fidha Fathima Panankavil", "13,000", "13.0%"],
         ["Leo Joy", "13,000", "13.0%"],
         ["Nithin Stanley George", "13,000", "13.0%"],
-        ["Minhaj Eshwaramangalam", "13,000", "13.0%"],
+        ["Minhaj Eswaramangalam", "13,000", "13.0%"],
         ["Gopinath Dasan", "13,000", "13.0%"],
-        ["Pallampettivelayudhan Nithin", "10,000", "10.0%"],
+        ["Nithin Pallampetti Velayudhan", "10,000", "10.0%"],
         ["Angel investor (post-seed)", "12,000", "12.0%"],
         ["<b>Total</b>", "<b>100,000</b>", "<b>100%</b>"],
     ],
@@ -980,7 +980,7 @@ P(
 H2("8.6 Data protection")
 P(
     "GDPR applies to everything we store about students. We have appointed "
-    "Pallampettivelayudhan Nithin as data protection officer. Student "
+    "Nithin Pallampetti Velayudhan as data protection officer. Student "
     "data is hosted on a French cloud provider (OVH) with encryption at "
     "rest. We do not share data with service partners beyond the strict "
     "minimum needed to provision the bundled service."
