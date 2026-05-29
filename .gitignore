@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# Personal conversation files - do not commit
+*.mht
+*.mhtml
