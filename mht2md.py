@@ -97,7 +97,7 @@ class HTMLToMarkdown(HTMLParser):
         self.tag_stack: list[bool] = []   # one bool per open element: is it a skip trigger?
         self.skip_count = 0               # open skip-trigger elements; >0 means suppress
         self.in_pre = False
-        self.pre_open = False              # has the current ``` fence been written yet?
+        self.pre_buffer: list[str] = []    # raw text collected inside a <pre>
         self.pre_lang = ""
         self.list_stack: list[dict] = []   # {"type": "ul"/"ol", "n": int}
         self.href: str | None = None
@@ -167,15 +167,17 @@ class HTMLToMarkdown(HTMLParser):
                 self.out.append(self._list_prefix())
         elif tag == "pre":
             self.in_pre = True
-            self.pre_open = False
-            self.pre_lang = ""
-            self._newline(2)
+            self.pre_buffer = []
+            # Language comes from the header label (folded into data-lang during
+            # preprocessing); fall back to a language- class on the <code>.
+            self.pre_lang = ad.get("data-lang", "") or ""
         elif tag == "code":
             if self.in_pre:
-                cls = ad.get("class", "") or ""
-                m = re.search(r"language-([\w+#-]+)", cls)
-                if m:
-                    self.pre_lang = m.group(1)
+                if not self.pre_lang:
+                    cls = ad.get("class", "") or ""
+                    m = re.search(r"language-([\w+#-]+)", cls)
+                    if m:
+                        self.pre_lang = m.group(1)
             else:
                 self._emit("`")
         elif tag == "blockquote":
@@ -224,16 +226,18 @@ class HTMLToMarkdown(HTMLParser):
             if not self.list_stack:
                 self._newline(2)
         elif tag == "pre":
-            # Close the fenced block that handle_data opened.
-            if not self.pre_open:
-                # Empty <pre> with no text - emit an empty fence for fidelity.
-                self.out.append(f"```{self.pre_lang}\n")
-            elif not "".join(self.out).endswith("\n"):
-                self.out.append("\n")
-            self.out.append("```")
+            content = "".join(self.pre_buffer).strip("\n")
+            # Use a fence longer than any backtick run inside the code, so code
+            # that itself contains ``` cannot terminate the block early.
+            longest = max((len(r) for r in re.findall(r"`+", content)), default=0)
+            fence = "`" * max(3, longest + 1)
+            self._newline(2)
+            self.out.append(f"{fence}{self.pre_lang}\n")
+            self.out.append(content + "\n")
+            self.out.append(fence)
             self._newline(2)
             self.in_pre = False
-            self.pre_open = False
+            self.pre_buffer = []
         elif tag == "code" and not self.in_pre:
             self._emit("`")
         elif tag == "blockquote":
@@ -246,13 +250,9 @@ class HTMLToMarkdown(HTMLParser):
         if self.skip_count:
             return
         if self.in_pre:
-            # Open the fence once, lazily, so we can grab the language hint
-            # first. A <pre> may contain many <span> lines; they all belong to
-            # the same fenced block.
-            if not self.pre_open:
-                self.out.append(f"```{self.pre_lang}\n")
-                self.pre_open = True
-            self.out.append(data)
+            # Collect all text (a <pre> may hold many <span> lines); the fence
+            # is written once, with a safe length, when the <pre> closes.
+            self.pre_buffer.append(data)
             return
         # Normalise runs of whitespace in flowing text.
         text = re.sub(r"\s+", " ", data)
@@ -268,9 +268,25 @@ class HTMLToMarkdown(HTMLParser):
         return text.strip()
 
 
+# Claude.ai shows a code block's language in a small header label just before
+# the <pre>. Fold that label into the <pre> as data-lang so it becomes the
+# fence's language hint instead of leaking into the text as a stray line.
+_LANG_LABEL_RE = re.compile(
+    r'<div class="[^"]*\btext-text-500\b[^"]*\bfont-small\b[^"]*">'
+    r'([A-Za-z0-9+#.-]{1,20})</div>'
+    r'(\s*<div[^>]*>\s*)?'      # optional scroll wrapper
+    r'\s*<pre\b',
+    re.IGNORECASE)
+
+
+def _fold_code_language(fragment: str) -> str:
+    return _LANG_LABEL_RE.sub(
+        lambda m: f'{m.group(2) or ""}<pre data-lang="{m.group(1)}"', fragment)
+
+
 def html_to_markdown(fragment: str) -> str:
     parser = HTMLToMarkdown()
-    parser.feed(fragment)
+    parser.feed(_fold_code_language(fragment))
     parser.close()
     return parser.markdown()
 
@@ -370,12 +386,9 @@ def body_only(html_doc: str) -> str:
 ROLE_HEADINGS = {"user": "## 👤 User", "assistant": "## 🤖 Claude"}
 
 
-def convert(html_doc: str, raw: bool = False) -> str:
-    title = extract_title(html_doc)
+def render_turns(html_doc: str, raw: bool = False) -> str:
+    """Render just the conversation body (no document title)."""
     lines: list[str] = []
-    if title:
-        lines.append(f"# {title}\n")
-
     turns = [] if raw else split_into_turns(html_doc)
 
     if turns:
@@ -396,8 +409,49 @@ def convert(html_doc: str, raw: bool = False) -> str:
                 "Markdown.\n")
         lines.append(html_to_markdown(body_only(html_doc)))
 
-    text = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
+def convert(html_doc: str, raw: bool = False) -> str:
+    title = extract_title(html_doc)
+    body = render_turns(html_doc, raw)
+    parts = [f"# {title}"] if title else []
+    parts.append(body)
+    text = "\n\n".join(p for p in parts if p)
     return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
+
+
+def slugify(text: str, seen: dict[str, int]) -> str:
+    """GitHub-style heading anchor, with -1/-2 suffixes for duplicates."""
+    slug = re.sub(r"[^\w\s-]", "", text.lower())
+    slug = re.sub(r"\s+", "-", slug.strip())
+    n = seen.get(slug, 0)
+    seen[slug] = n + 1
+    return slug if n == 0 else f"{slug}-{n}"
+
+
+def convert_combined(paths: list[str], raw: bool = False) -> str:
+    """Combine several conversations into one Markdown file: a table of
+    contents followed by each conversation as a numbered `# N. Title` section."""
+    sections: list[str] = []
+    toc: list[str] = []
+    seen: dict[str, int] = {}
+
+    for n, path in enumerate(paths, 1):
+        html_doc = extract_html_from_mht(path)
+        title = (extract_title(html_doc)
+                 or os.path.splitext(os.path.basename(path))[0])
+        body = render_turns(html_doc, raw)
+        heading_text = f"{n}. {title}"
+        anchor = slugify(heading_text, seen)
+        toc.append(f"{n}. [{title}](#{anchor})")
+        sections.append(f"# {heading_text}\n\n{body}")
+
+    header = (f"# Claude Conversations\n\n"
+              f"_{len(paths)} conversations combined._\n\n"
+              f"## Contents\n\n" + "\n".join(toc))
+    doc = header + "\n\n---\n\n" + "\n\n---\n\n".join(sections)
+    return re.sub(r"\n{3,}", "\n\n", doc).strip() + "\n"
 
 
 # --------------------------------------------------------------------------- #
@@ -414,37 +468,65 @@ def convert_file(in_path: str, out_path: str | None, raw: bool) -> str:
     return out_path
 
 
+def _expand_inputs(inputs: list[str]) -> list[str]:
+    """Expand any directories into their .mht/.mhtml files, preserving order."""
+    files: list[str] = []
+    for item in inputs:
+        if os.path.isdir(item):
+            files.extend(sorted(
+                os.path.join(item, f) for f in os.listdir(item)
+                if f.lower().endswith((".mht", ".mhtml"))))
+        else:
+            files.append(item)
+    return files
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        description="Convert a saved Claude .mht/.mhtml conversation to Markdown.")
-    ap.add_argument("input", help="An .mht/.mhtml file, or a folder of them.")
+        description="Convert saved Claude .mht/.mhtml conversations to Markdown.")
+    ap.add_argument("input", nargs="+",
+                    help="One or more .mht/.mhtml files, or folders of them.")
     ap.add_argument("-o", "--output",
-                    help="Output .md path (single-file input only).")
+                    help="Output path. With multiple inputs this becomes a "
+                         "single combined file (one numbered section per chat).")
+    ap.add_argument("--combine", action="store_true",
+                    help="Force combined output even for a single input. "
+                         "Requires -o.")
     ap.add_argument("--raw", action="store_true",
                     help="Skip turn detection; convert the whole page.")
     args = ap.parse_args(argv)
 
-    if os.path.isdir(args.input):
-        if args.output:
-            ap.error("--output cannot be used with a directory input.")
-        files = sorted(
-            os.path.join(args.input, f) for f in os.listdir(args.input)
-            if f.lower().endswith((".mht", ".mhtml")))
-        if not files:
-            print(f"No .mht/.mhtml files found in {args.input}", file=sys.stderr)
-            return 1
-        for f in files:
-            print(f"Converting {f} ...")
-            out = convert_file(f, None, args.raw)
-            print(f"  -> {out}")
-        return 0
-
-    if not os.path.isfile(args.input):
-        print(f"Not found: {args.input}", file=sys.stderr)
+    files = _expand_inputs(args.input)
+    missing = [f for f in files if not os.path.isfile(f)]
+    if missing:
+        print("Not found:\n  " + "\n  ".join(missing), file=sys.stderr)
+        return 1
+    if not files:
+        print("No .mht/.mhtml files found.", file=sys.stderr)
         return 1
 
-    out = convert_file(args.input, args.output, args.raw)
-    print(f"Wrote {out}")
+    combine = args.combine or (args.output and len(files) > 1)
+
+    if combine:
+        if not args.output:
+            ap.error("combined output requires -o/--output.")
+        print(f"Combining {len(files)} conversation(s) -> {args.output}")
+        md = convert_combined(files, raw=args.raw)
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(md)
+        print(f"Wrote {args.output}")
+        return 0
+
+    if args.output and len(files) == 1:
+        out = convert_file(files[0], args.output, args.raw)
+        print(f"Wrote {out}")
+        return 0
+
+    # Multiple inputs, no -o: write a sibling .md for each.
+    for f in files:
+        print(f"Converting {f} ...")
+        out = convert_file(f, None, args.raw)
+        print(f"  -> {out}")
     return 0
 
 
