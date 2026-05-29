@@ -316,13 +316,24 @@ def find_turn_boundaries(html_doc: str) -> list[tuple[int, str]]:
     return deduped
 
 
-def split_into_turns(html_doc: str) -> list[tuple[str, str]]:
-    """Split the document into (role, markdown) turns. Empty list if none."""
+# The per-message date sits in the action toolbar (which we strip from the
+# body); pull it out separately so it can be shown on the turn heading.
+_TIMESTAMP_RE = re.compile(
+    r'<span class="text-text-500 text-xs[^"]*"[^>]*>([^<]+)</span>')
+
+
+def extract_timestamp(segment: str) -> str:
+    m = _TIMESTAMP_RE.search(segment)
+    return html.unescape(m.group(1)).strip() if m else ""
+
+
+def split_into_turns(html_doc: str) -> list[tuple[str, str, str]]:
+    """Split the document into (role, date, markdown) turns. [] if none."""
     boundaries = find_turn_boundaries(html_doc)
     if not boundaries:
         return []
 
-    turns: list[tuple[str, str]] = []
+    turns: list[tuple[str, str, str]] = []
     for i, (pos, role) in enumerate(boundaries):
         # Back up to the opening "<" of the tag carrying the marker.
         tag_start = html_doc.rfind("<", 0, pos)
@@ -333,7 +344,7 @@ def split_into_turns(html_doc: str) -> list[tuple[str, str]]:
         segment = html_doc[tag_start:end]
         md = html_to_markdown(segment)
         if md.strip():
-            turns.append((role, md))
+            turns.append((role, extract_timestamp(segment), md))
     return turns
 
 
@@ -368,8 +379,11 @@ def convert(html_doc: str, raw: bool = False) -> str:
     turns = [] if raw else split_into_turns(html_doc)
 
     if turns:
-        for role, md in turns:
-            lines.append(ROLE_HEADINGS.get(role, f"## {role.title()}"))
+        for role, date, md in turns:
+            heading = ROLE_HEADINGS.get(role, f"## {role.title()}")
+            if date:
+                heading += f" — {date}"
+            lines.append(heading)
             lines.append("")
             lines.append(md)
             lines.append("")
