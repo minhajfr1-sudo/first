@@ -4,3 +4,6 @@ __pycache__/
 # Personal conversation files - do not commit
 *.mht
 *.mhtml
+EXCHANGE_SUMMARIES.md
+Claude_Conversations*.md
+*__Claude.md
