@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import email
+import hashlib
 import html
 import os
 import re
@@ -430,25 +431,38 @@ def slugify(text: str, seen: dict[str, int]) -> str:
     return slug if n == 0 else f"{slug}-{n}"
 
 
-def convert_combined(paths: list[str], raw: bool = False) -> str:
+def convert_combined(paths: list[str], raw: bool = False,
+                     dedupe: bool = False) -> str:
     """Combine several conversations into one Markdown file: a table of
-    contents followed by each conversation as a numbered `# N. Title` section."""
+    contents followed by each conversation as a numbered `# N. Title` section.
+
+    With dedupe=True, conversations whose body is identical to an earlier one
+    (e.g. the same chat saved twice) are skipped, keeping the first."""
     sections: list[str] = []
     toc: list[str] = []
     seen: dict[str, int] = {}
+    seen_bodies: set[str] = set()
+    n = 0
 
-    for n, path in enumerate(paths, 1):
+    for path in paths:
         html_doc = extract_html_from_mht(path)
         title = (extract_title(html_doc)
                  or os.path.splitext(os.path.basename(path))[0])
         body = render_turns(html_doc, raw)
+        if dedupe:
+            digest = hashlib.md5(body.encode("utf-8", "replace")).hexdigest()
+            if digest in seen_bodies:
+                sys.stderr.write(f"  skip duplicate: {title}\n")
+                continue
+            seen_bodies.add(digest)
+        n += 1
         heading_text = f"{n}. {title}"
         anchor = slugify(heading_text, seen)
         toc.append(f"{n}. [{title}](#{anchor})")
         sections.append(f"# {heading_text}\n\n{body}")
 
     header = (f"# Claude Conversations\n\n"
-              f"_{len(paths)} conversations combined._\n\n"
+              f"_{n} conversations combined._\n\n"
               f"## Contents\n\n" + "\n".join(toc))
     doc = header + "\n\n---\n\n" + "\n\n---\n\n".join(sections)
     return re.sub(r"\n{3,}", "\n\n", doc).strip() + "\n"
@@ -492,6 +506,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--combine", action="store_true",
                     help="Force combined output even for a single input. "
                          "Requires -o.")
+    ap.add_argument("--dedupe", action="store_true",
+                    help="In combined mode, skip conversations whose body is "
+                         "identical to an earlier one (re-saved duplicates).")
     ap.add_argument("--raw", action="store_true",
                     help="Skip turn detection; convert the whole page.")
     args = ap.parse_args(argv)
@@ -511,7 +528,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.output:
             ap.error("combined output requires -o/--output.")
         print(f"Combining {len(files)} conversation(s) -> {args.output}")
-        md = convert_combined(files, raw=args.raw)
+        md = convert_combined(files, raw=args.raw, dedupe=args.dedupe)
         with open(args.output, "w", encoding="utf-8") as fh:
             fh.write(md)
         print(f"Wrote {args.output}")

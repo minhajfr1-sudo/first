@@ -21,9 +21,20 @@ python3 mht2md.py chat.mht -o transcript.md
 # Convert every .mht / .mhtml in a folder
 python3 mht2md.py ./saved_chats/
 
+# Combine many chats into ONE file (numbered sections + table of contents)
+python3 mht2md.py a.mht b.mht c.mht -o Combined.md
+python3 mht2md.py ./saved_chats/ -o Combined.md
+
+# Combine and drop re-saved duplicates (same conversation saved twice)
+python3 mht2md.py ./saved_chats/ -o Combined.md --dedupe
+
 # Skip turn detection and dump the whole page as Markdown
 python3 mht2md.py chat.mht --raw
 ```
+
+When combining, each conversation becomes a `# N. Title` section, preceded by
+a linked table of contents. `--dedupe` skips any conversation whose body is
+identical to one already included.
 
 ## What it produces
 
