@@ -97,6 +97,7 @@ class HTMLToMarkdown(HTMLParser):
         self.tag_stack: list[bool] = []   # one bool per open element: is it a skip trigger?
         self.skip_count = 0               # open skip-trigger elements; >0 means suppress
         self.in_pre = False
+        self.pre_open = False              # has the current ``` fence been written yet?
         self.pre_lang = ""
         self.list_stack: list[dict] = []   # {"type": "ul"/"ol", "n": int}
         self.href: str | None = None
@@ -166,6 +167,7 @@ class HTMLToMarkdown(HTMLParser):
                 self.out.append(self._list_prefix())
         elif tag == "pre":
             self.in_pre = True
+            self.pre_open = False
             self.pre_lang = ""
             self._newline(2)
         elif tag == "code":
@@ -223,12 +225,15 @@ class HTMLToMarkdown(HTMLParser):
                 self._newline(2)
         elif tag == "pre":
             # Close the fenced block that handle_data opened.
-            body = "".join(self.out)
-            if not body.endswith("\n"):
+            if not self.pre_open:
+                # Empty <pre> with no text - emit an empty fence for fidelity.
+                self.out.append(f"```{self.pre_lang}\n")
+            elif not "".join(self.out).endswith("\n"):
                 self.out.append("\n")
             self.out.append("```")
             self._newline(2)
             self.in_pre = False
+            self.pre_open = False
         elif tag == "code" and not self.in_pre:
             self._emit("`")
         elif tag == "blockquote":
@@ -241,9 +246,12 @@ class HTMLToMarkdown(HTMLParser):
         if self.skip_count:
             return
         if self.in_pre:
-            # Open the fence lazily so we can grab the language hint first.
-            if not (self.out and self.out[-1].startswith("```")):
+            # Open the fence once, lazily, so we can grab the language hint
+            # first. A <pre> may contain many <span> lines; they all belong to
+            # the same fenced block.
+            if not self.pre_open:
                 self.out.append(f"```{self.pre_lang}\n")
+                self.pre_open = True
             self.out.append(data)
             return
         # Normalise runs of whitespace in flowing text.
