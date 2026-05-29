@@ -63,6 +63,29 @@ def extract_html_from_mht(path: str) -> str:
 SKIP_TAGS = {"script", "style", "head", "noscript", "svg", "button"}
 BLOCK_TAGS = {"p", "div", "section", "article", "header", "footer",
               "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table", "tr"}
+# Void elements never have children/closing tags, so they aren't stacked.
+VOID_TAGS = {"br", "hr", "img", "input", "meta", "link", "area", "base",
+             "col", "embed", "source", "track", "wbr"}
+
+
+def _is_hidden_chrome(tag: str, attrs: dict) -> bool:
+    """True for Claude.ai UI chrome that should not appear in the transcript.
+
+    Covers screen-reader-only duplicates (the "You said:" / "Claude responded:"
+    headings and aria-live status spans), the per-message action toolbar
+    (copy/retry buttons plus the timestamp), the "Claude can make mistakes"
+    disclaimer, and hidden/inactive panels (e.g. the collapsed artifact
+    preview, marked with opacity-0 + pointer-events-none)."""
+    cls = attrs.get("class") or ""
+    if "sr-only" in cls:
+        return True
+    if "opacity-0" in cls and "pointer-events-none" in cls:
+        return True
+    if attrs.get("aria-label") == "Message actions":
+        return True
+    if attrs.get("data-disclaimer") == "true":
+        return True
+    return False
 
 
 class HTMLToMarkdown(HTMLParser):
@@ -71,7 +94,8 @@ class HTMLToMarkdown(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.out: list[str] = []
-        self.skip_depth = 0
+        self.tag_stack: list[bool] = []   # one bool per open element: is it a skip trigger?
+        self.skip_count = 0               # open skip-trigger elements; >0 means suppress
         self.in_pre = False
         self.pre_lang = ""
         self.list_stack: list[dict] = []   # {"type": "ul"/"ol", "n": int}
@@ -111,23 +135,25 @@ class HTMLToMarkdown(HTMLParser):
 
     # -- tag handlers ------------------------------------------------------- #
     def handle_starttag(self, tag, attrs):
-        if tag in SKIP_TAGS:
-            self.skip_depth += 1
-            return
-        if self.skip_depth:
-            return
         ad = dict(attrs)
+
+        if tag in VOID_TAGS:
+            if self.skip_count:
+                return
+            self._handle_void(tag, ad)
+            return
+
+        is_trigger = tag in SKIP_TAGS or _is_hidden_chrome(tag, ad)
+        self.tag_stack.append(is_trigger)
+        if is_trigger:
+            self.skip_count += 1
+        if self.skip_count:
+            return
 
         if tag in ("strong", "b"):
             self._emit("**")
         elif tag in ("em", "i"):
             self._emit("*")
-        elif tag == "br":
-            self._emit("\n")
-        elif tag == "hr":
-            self._newline(2)
-            self.out.append("---")
-            self._newline(2)
         elif tag == "a":
             self.href = ad.get("href", "")
             self.link_text = []
@@ -159,11 +185,22 @@ class HTMLToMarkdown(HTMLParser):
         elif tag in BLOCK_TAGS:
             self._newline(2)
 
+    def _handle_void(self, tag, ad):
+        if tag == "br":
+            self._emit("\n")
+        elif tag == "hr":
+            self._newline(2)
+            self.out.append("---")
+            self._newline(2)
+
     def handle_endtag(self, tag):
-        if tag in SKIP_TAGS:
-            self.skip_depth = max(0, self.skip_depth - 1)
+        if tag in VOID_TAGS:
             return
-        if self.skip_depth:
+        was_trigger = self.tag_stack.pop() if self.tag_stack else False
+        if was_trigger:
+            self.skip_count -= 1
+        # Suppress end handling if we're still inside (or just closing) a skip.
+        if self.skip_count or was_trigger:
             return
 
         if tag in ("strong", "b"):
@@ -201,7 +238,7 @@ class HTMLToMarkdown(HTMLParser):
             self._newline(2)
 
     def handle_data(self, data):
-        if self.skip_depth:
+        if self.skip_count:
             return
         if self.in_pre:
             # Open the fence lazily so we can grab the language hint first.
@@ -218,8 +255,6 @@ class HTMLToMarkdown(HTMLParser):
     # -- result ------------------------------------------------------------- #
     def markdown(self) -> str:
         text = "".join(self.out)
-        if self.blockquote_depth or "\n>" in text:
-            pass
         text = re.sub(r"[ \t]+\n", "\n", text)        # trailing spaces
         text = re.sub(r"\n{3,}", "\n\n", text)        # collapse blank runs
         return text.strip()
